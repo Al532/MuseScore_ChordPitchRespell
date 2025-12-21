@@ -4,10 +4,10 @@ import MuseScore 3.0
 MuseScore {
     menuPath: "Plugins/Enharmonic Respeller/Remplacer quintes justes"
     description: qsTr("Pour chaque accord, orthographie chaque note par rapport à la basse avec la distance de TPC minimale.")
-    version: "1.2.0"
+    version: "1.3.0"
     requiresScore: true
 
-    function processChord(notes) {
+    function respellNotesRelativeToBass(notes) {
         if (notes.length < 2)
             return;
 
@@ -54,6 +54,34 @@ MuseScore {
         }
     }
 
+    function applyKeySignatureAdjustment(notes, keySignature) {
+        if (!notes.length)
+            return;
+
+        var totalTpc = 0;
+        for (var i = 0; i < notes.length; i++)
+            totalTpc += notes[i].tpc;
+
+        var averageTpc = totalTpc / notes.length;
+        var keyTpc = 14 + keySignature;
+        var difference = keyTpc - averageTpc;
+
+        if (Math.abs(difference) < 12)
+            return;
+
+        var adjustment = Math.round(difference / 12) * 12;
+        if (!adjustment)
+            return;
+
+        for (var j = 0; j < notes.length; j++)
+            notes[j].tpc += adjustment;
+    }
+
+    function processChord(notes, keySignature) {
+        respellNotesRelativeToBass(notes);
+        applyKeySignatureAdjustment(notes, keySignature);
+    }
+
     function processSelection() {
         var cursor = curScore.newCursor();
         cursor.rewind(Cursor.SELECTION_START);
@@ -65,10 +93,8 @@ MuseScore {
         var selectionEndTick = hasSelection ? curScore.selectionEndTick : -1;
 
         while (cursor.segment && (!hasSelection || cursor.tick < selectionEndTick)) {
-            if (cursor.element && cursor.element.type === Element.CHORD) {
-                var notes = cursor.element.notes;
-                processChord(notes);
-            }
+            if (cursor.element && cursor.element.type === Element.CHORD)
+                processChord(cursor.element.notes, cursor.keySignature);
             cursor.next();
         }
     }
