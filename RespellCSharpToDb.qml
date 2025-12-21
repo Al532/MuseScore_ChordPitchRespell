@@ -58,11 +58,18 @@ MuseScore {
         if (!notes.length)
             return;
 
-        var totalTpc = 0;
-        for (var i = 0; i < notes.length; i++)
-            totalTpc += notes[i].tpc;
+        var minTpc = notes[0].tpc;
+        var maxTpc = notes[0].tpc;
 
-        var averageTpc = totalTpc / notes.length;
+        for (var i = 1; i < notes.length; i++) {
+            var tpc = notes[i].tpc;
+            if (tpc < minTpc)
+                minTpc = tpc;
+            if (tpc > maxTpc)
+                maxTpc = tpc;
+        }
+
+        var averageTpc = (minTpc + maxTpc) / 2;
         var keyTpc = 14 + keySignature;
         var difference = keyTpc - averageTpc;
 
