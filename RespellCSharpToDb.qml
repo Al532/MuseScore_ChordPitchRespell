@@ -8,9 +8,9 @@ MuseScore {
     requiresScore: true
 
     function respellCSharpToDb(note) {
-        // tpc 22 corresponds to C sharp; 10 corresponds to D flat in MuseScore's tonal pitch class mapping.
-        if (note.tpc === 22)
-            note.tpc = 10;
+        // tpc 21 corresponds to C sharp; 9 corresponds to D flat in MuseScore's tonal pitch class mapping.
+        if (note.tpc === 21)
+            note.tpc = 9;
     }
 
     function processSelection() {
@@ -19,11 +19,11 @@ MuseScore {
 
         var hasSelection = !!cursor.segment;
         if (!hasSelection)
-            cursor.rewind(Cursor.START);
+            return;
 
         var selectionEndTick = hasSelection ? curScore.selectionEndTick : -1;
 
-        while (cursor.segment && (!hasSelection || cursor.tick < selectionEndTick)) {
+        while (cursor.segment && cursor.tick < selectionEndTick) {
             if (cursor.element && cursor.element.type === Element.CHORD) {
                 var notes = cursor.element.notes;
                 for (var i = 0; i < notes.length; i++)
