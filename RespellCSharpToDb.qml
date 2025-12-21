@@ -2,15 +2,32 @@ import QtQuick 2.0
 import MuseScore 3.0
 
 MuseScore {
-    menuPath: "Plugins/Enharmonic Respeller/Changer Do# en Ré♭"
-    description: qsTr("Remplace tous les do# sélectionnés par des ré bémol.")
-    version: "1.0.0"
+    menuPath: "Plugins/Enharmonic Respeller/Remplacer quintes justes"
+    description: qsTr("Pour chaque accord, décale aléatoirement la TPC d'une quinte juste pour qu'elle soit à 1 de l'autre.")
+    version: "1.1.0"
     requiresScore: true
 
-    function respellCSharpToDb(note) {
-        // tpc 22 corresponds to C sharp; 10 corresponds to D flat in MuseScore's tonal pitch class mapping.
-        if (note.tpc === 22)
-            note.tpc = 10;
+    function adjustPerfectFifthPair(noteA, noteB) {
+        // Choose one of the two notes randomly and adjust its TPC so that it differs by 1 from the other.
+        var adjustFirst = Math.random() < 0.5;
+        var referenceNote = adjustFirst ? noteB : noteA;
+        var targetNote = adjustFirst ? noteA : noteB;
+        var delta = Math.random() < 0.5 ? 1 : -1;
+
+        targetNote.tpc = referenceNote.tpc + delta;
+    }
+
+    function processChord(notes) {
+        if (notes.length < 2)
+            return;
+
+        for (var i = 0; i < notes.length; i++) {
+            for (var j = i + 1; j < notes.length; j++) {
+                var semitoneDistance = Math.abs(notes[i].pitch - notes[j].pitch);
+                if (semitoneDistance === 7)
+                    adjustPerfectFifthPair(notes[i], notes[j]);
+            }
+        }
     }
 
     function processSelection() {
@@ -26,8 +43,7 @@ MuseScore {
         while (cursor.segment && (!hasSelection || cursor.tick < selectionEndTick)) {
             if (cursor.element && cursor.element.type === Element.CHORD) {
                 var notes = cursor.element.notes;
-                for (var i = 0; i < notes.length; i++)
-                    respellCSharpToDb(notes[i]);
+                processChord(notes);
             }
             cursor.next();
         }
