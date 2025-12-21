@@ -98,8 +98,14 @@ MuseScore {
             cursor.rewind(Cursor.START);
 
         var selectionEndTick = hasSelection ? curScore.selectionEndTick : -1;
+        var previousKeySignature = undefined;
 
         while (cursor.segment && (!hasSelection || cursor.tick < selectionEndTick)) {
+            if (previousKeySignature === undefined || cursor.keySignature !== previousKeySignature) {
+                console.log("Current keySignature:", cursor.keySignature);
+                previousKeySignature = cursor.keySignature;
+            }
+
             if (cursor.element && cursor.element.type === Element.CHORD)
                 processChord(cursor.element.notes, cursor.keySignature);
             cursor.next();
