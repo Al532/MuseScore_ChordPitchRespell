@@ -3,7 +3,7 @@ import MuseScore 3.0
 
 MuseScore {
     menuPath: "Plugins/"
-    description: qsTr("Pour chaque accord, orthographie chaque note par rapport à la basse avec la distance de TPC minimale.")
+    description: qsTr("General-purpose enharmonic respell tool, especially effective on chords entered via MIDI.")
     version: "1.3.0"
     requiresScore: true
 
@@ -11,6 +11,7 @@ MuseScore {
         if (notes.length < 2)
             return;
 
+        // Identify the bass note as the lowest pitch in the chord to use as reference.
         var bassNote = notes[0];
         for (var i = 1; i < notes.length; i++) {
             if (notes[i].pitch < bassNote.pitch)
@@ -38,6 +39,7 @@ MuseScore {
             if (note === bassNote)
                 continue;
 
+            // Choose the TPC closest to the bass note so the spelling aligns naturally.
             var candidates = pitchClassToTpcs[note.pitch % 12];
             var closestTpc = candidates[0];
             var minimalDistance = Math.abs(closestTpc - bassNote.tpc);
@@ -58,6 +60,7 @@ MuseScore {
         if (!notes.length)
             return;
 
+        // Find the overall TPC span to gauge the chord's average spelling weight.
         var minTpc = notes[0].tpc;
         var maxTpc = notes[0].tpc;
 
@@ -72,7 +75,7 @@ MuseScore {
         var averageTpc = (minTpc + maxTpc) / 2;
         var TpcAdjust = 2;
         var keyTpc = 16 + keySignature/TpcAdjust;
-		
+
         var difference = keyTpc - averageTpc;
 
 
@@ -80,10 +83,12 @@ MuseScore {
         if (!adjustment)
             return;
 
+        // Shift every note by a diatonic octave to better fit the key context.
         for (var j = 0; j < notes.length; j++)
             notes[j].tpc += adjustment;
     }
 
+    // Run both respelling steps on a single chord.
     function processChord(notes, keySignature) {
         respellNotesRelativeToBass(notes);
         applyKeySignatureAdjustment(notes, keySignature);
@@ -93,18 +98,18 @@ function processSelection() {
     var sel = curScore.selection;
     var elems = sel ? sel.elements : null;
 
-    // 1) Pas de sélection => ne rien faire
+    // 1) No selection => nothing to process.
     if (!elems || elems.length === 0) {
         return;
     }
 
-    // 2) Range selection => start/end ticks fiables
+    // 2) Range selection => reliable start/end ticks.
     if (sel.isRange) {
         processRangeSelection(sel.startSegment.tick, sel.endSegment.tick);
         return;
     }
 
-    // 3) List selection => itérer les éléments sélectionnés
+    // 3) List selection => iterate over the chosen elements.
     processListSelection(elems);
 }
 
@@ -113,6 +118,7 @@ function processRangeSelection(startTick, endTick) {
     var cursor = curScore.newCursor();
     cursor.rewind(Cursor.SELECTION_START);
 
+    // Walk through every segment inside the selection and respell its chords.
     while (cursor.segment && cursor.tick < endTick) {
         if (cursor.element && cursor.element.type === Element.CHORD)
             processChord(cursor.element.notes, cursor.keySignature);
@@ -121,10 +127,10 @@ function processRangeSelection(startTick, endTick) {
 }
 
 function processListSelection(elements) {
-    // On veut traiter des CHORDs, même si l’utilisateur a sélectionné des NOTEheads, etc.
+    // Always process CHORDs, even if the user selected NOTE heads or other parts.
     var cursor = curScore.newCursor();
 
-    var seen = {}; // dédoublonnage
+    var seen = {}; // de-duplicate chords.
     for (var i = 0; i < elements.length; i++) {
         var e = elements[i];
         if (!e) continue;
@@ -134,19 +140,19 @@ function processListSelection(elements) {
         if (e.type === Element.CHORD) {
             chord = e;
         } else if (e.type === Element.NOTE) {
-            chord = e.parent; // une NOTE appartient à un CHORD
+            chord = e.parent; // a NOTE belongs to a CHORD
         } else {
             continue;
         }
 
         if (!chord) continue;
 
-        // Clé de dédoublonnage : tick + track (suffisant en pratique)
+        // Deduplication key: tick + track is sufficient in practice.
         var key = chord.tick + ":" + chord.track;
         if (seen[key]) continue;
         seen[key] = true;
 
-        // Récupérer la tonalité (keySignature) de façon sûre au tick du chord
+        // Safely retrieve the key signature at the chord's tick.
         cursor.track = chord.track;
         cursor.rewindToTick(chord.tick);
 
