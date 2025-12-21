@@ -7,26 +7,26 @@ MuseScore {
     version: "1.3.1"
     requiresScore: true
 
-    var pitchClassToTpcs = {
-        0: [2, 14, 26],
-        1: [9, 21, 33],
-        2: [4, 16, 28],
-        3: [-1, 11, 23],
-        4: [6, 18, 30],
-        5: [1, 13, 25],
-        6: [8, 20, 32],
-        7: [3, 15, 27],
-        8: [10, 22],
-        9: [5, 17, 29],
-        10: [0, 12, 24],
-        11: [7, 19, 31]
-    };
+    property var pitchClassToTpcs: ({
+                                        0: [2, 14, 26],
+                                        1: [9, 21, 33],
+                                        2: [4, 16, 28],
+                                        3: [-1, 11, 23],
+                                        4: [6, 18, 30],
+                                        5: [1, 13, 25],
+                                        6: [8, 20, 32],
+                                        7: [3, 15, 27],
+                                        8: [10, 22],
+                                        9: [5, 17, 29],
+                                        10: [0, 12, 24],
+                                        11: [7, 19, 31]
+                                    })
 
     function respellNotesRelativeToTonic(notes, keySignature) {
         if (!notes.length)
             return;
 
-        var tonicTpc = keySignature + 14;
+        var tonicTpc = (typeof keySignature === 'number' ? keySignature : 0) + 14;
 
         for (var i = 0; i < notes.length; i++) {
             var candidates = pitchClassToTpcs[notes[i].pitch % 12];
