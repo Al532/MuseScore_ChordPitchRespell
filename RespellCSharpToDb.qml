@@ -3,30 +3,54 @@ import MuseScore 3.0
 
 MuseScore {
     menuPath: "Plugins/Enharmonic Respeller/Remplacer quintes justes"
-    description: qsTr("Pour chaque accord, décale aléatoirement la TPC d'une quinte juste pour qu'elle soit à 1 de l'autre.")
-    version: "1.1.0"
+    description: qsTr("Pour chaque accord, orthographie chaque note par rapport à la basse avec la distance de TPC minimale.")
+    version: "1.2.0"
     requiresScore: true
-
-    function adjustPerfectFifthPair(noteA, noteB) {
-        // Choose one of the two notes randomly and adjust its TPC so that it differs by 1 from the other.
-        var adjustFirst = Math.random() < 0.5;
-        var referenceNote = adjustFirst ? noteB : noteA;
-        var targetNote = adjustFirst ? noteA : noteB;
-        var delta = Math.random() < 0.5 ? 1 : -1;
-
-        targetNote.tpc = referenceNote.tpc + delta;
-    }
 
     function processChord(notes) {
         if (notes.length < 2)
             return;
 
-        for (var i = 0; i < notes.length; i++) {
-            for (var j = i + 1; j < notes.length; j++) {
-                var semitoneDistance = Math.abs(notes[i].pitch - notes[j].pitch);
-                if (semitoneDistance === 7)
-                    adjustPerfectFifthPair(notes[i], notes[j]);
+        var bassNote = notes[0];
+        for (var i = 1; i < notes.length; i++) {
+            if (notes[i].pitch < bassNote.pitch)
+                bassNote = notes[i];
+        }
+
+        var pitchClassToTpcs = {
+            0: [2, 14, 26],
+            1: [9, 21, 33],
+            2: [4, 16, 28],
+            3: [-1, 11, 23],
+            4: [6, 18, 30],
+            5: [1, 13, 25],
+            6: [8, 20, 32],
+            7: [3, 15, 27],
+            8: [10, 22],
+            9: [5, 17, 29],
+            10: [0, 12, 24],
+            11: [7, 19, 31]
+        };
+
+        for (var j = 0; j < notes.length; j++) {
+            var note = notes[j];
+
+            if (note === bassNote)
+                continue;
+
+            var candidates = pitchClassToTpcs[note.pitch % 12];
+            var closestTpc = candidates[0];
+            var minimalDistance = Math.abs(closestTpc - bassNote.tpc);
+
+            for (var k = 1; k < candidates.length; k++) {
+                var distance = Math.abs(candidates[k] - bassNote.tpc);
+                if (distance < minimalDistance) {
+                    minimalDistance = distance;
+                    closestTpc = candidates[k];
+                }
             }
+
+            note.tpc = closestTpc;
         }
     }
 
