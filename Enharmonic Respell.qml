@@ -2,7 +2,7 @@ import QtQuick 2.0
 import MuseScore 3.0
 
 MuseScore {
-    menuPath: "Plugins/Enharmonic Respeller/Remplacer quintes justes"
+    menuPath: "Plugins/"
     description: qsTr("Pour chaque accord, orthographie chaque note par rapport à la basse avec la distance de TPC minimale.")
     version: "1.3.0"
     requiresScore: true
@@ -70,11 +70,11 @@ MuseScore {
         }
 
         var averageTpc = (minTpc + maxTpc) / 2;
-        var keyTpc = 14 + keySignature;
+        var TpcAdjust = 2;
+        var keyTpc = 16 + keySignature/TpcAdjust;
+		
         var difference = keyTpc - averageTpc;
 
-        if (Math.abs(difference) < 12)
-            return;
 
         var adjustment = Math.round(difference / 12) * 12;
         if (!adjustment)
@@ -89,22 +89,71 @@ MuseScore {
         applyKeySignatureAdjustment(notes, keySignature);
     }
 
-    function processSelection() {
-        var cursor = curScore.newCursor();
-        cursor.rewind(Cursor.SELECTION_START);
+function processSelection() {
+    var sel = curScore.selection;
+    var elems = sel ? sel.elements : null;
 
-        var hasSelection = !!cursor.segment;
-        if (!hasSelection)
-            cursor.rewind(Cursor.START);
-
-        var selectionEndTick = hasSelection ? curScore.selectionEndTick : -1;
-
-        while (cursor.segment && (!hasSelection || cursor.tick < selectionEndTick)) {
-            if (cursor.element && cursor.element.type === Element.CHORD)
-                processChord(cursor.element.notes, cursor.keySignature);
-            cursor.next();
-        }
+    // 1) Pas de sélection => ne rien faire
+    if (!elems || elems.length === 0) {
+        return;
     }
+
+    // 2) Range selection => start/end ticks fiables
+    if (sel.isRange) {
+        processRangeSelection(sel.startSegment.tick, sel.endSegment.tick);
+        return;
+    }
+
+    // 3) List selection => itérer les éléments sélectionnés
+    processListSelection(elems);
+}
+
+
+function processRangeSelection(startTick, endTick) {
+    var cursor = curScore.newCursor();
+    cursor.rewind(Cursor.SELECTION_START);
+
+    while (cursor.segment && cursor.tick < endTick) {
+        if (cursor.element && cursor.element.type === Element.CHORD)
+            processChord(cursor.element.notes, cursor.keySignature);
+        cursor.next();
+    }
+}
+
+function processListSelection(elements) {
+    // On veut traiter des CHORDs, même si l’utilisateur a sélectionné des NOTEheads, etc.
+    var cursor = curScore.newCursor();
+
+    var seen = {}; // dédoublonnage
+    for (var i = 0; i < elements.length; i++) {
+        var e = elements[i];
+        if (!e) continue;
+
+        var chord = null;
+
+        if (e.type === Element.CHORD) {
+            chord = e;
+        } else if (e.type === Element.NOTE) {
+            chord = e.parent; // une NOTE appartient à un CHORD
+        } else {
+            continue;
+        }
+
+        if (!chord) continue;
+
+        // Clé de dédoublonnage : tick + track (suffisant en pratique)
+        var key = chord.tick + ":" + chord.track;
+        if (seen[key]) continue;
+        seen[key] = true;
+
+        // Récupérer la tonalité (keySignature) de façon sûre au tick du chord
+        cursor.track = chord.track;
+        cursor.rewindToTick(chord.tick);
+
+        processChord(chord.notes, cursor.keySignature);
+    }
+}
+
 
     onRun: {
         if (!curScore) {
