@@ -3,20 +3,13 @@ import MuseScore 3.0
 
 MuseScore {
     menuPath: "Plugins/"
-    description: qsTr("General-purpose enharmonic respell tool, especially effective on chords entered via MIDI.")
+    description: qsTr("Enharmonic respell tool, especially effective on chords entered via MIDI.")
     version: "1.3.0"
     requiresScore: true
 
-    function respellNotesRelativeToBass(notes) {
+    function respellNotes(notes) {
         if (notes.length < 2)
             return;
-
-        // Identify the bass note as the lowest pitch in the chord to use as reference.
-        var bassNote = notes[0];
-        for (var i = 1; i < notes.length; i++) {
-            if (notes[i].pitch < bassNote.pitch)
-                bassNote = notes[i];
-        }
 
         var pitchClassToTpcs = {
             0: [2, 14, 26],
@@ -33,19 +26,19 @@ MuseScore {
             11: [7, 19, 31]
         };
 
-        for (var j = 0; j < notes.length; j++) {
+        for (var j = 1; j < notes.length; j++) {
             var note = notes[j];
 
-            if (note === bassNote)
+            if (note === notes[0])
                 continue;
 
-            // Choose the TPC closest to the bass note so the spelling aligns naturally.
+            // Choose the TPC closest to the first note so the spelling aligns naturally.
             var candidates = pitchClassToTpcs[note.pitch % 12];
             var closestTpc = candidates[0];
-            var minimalDistance = Math.abs(closestTpc - bassNote.tpc);
+            var minimalDistance = Math.abs(closestTpc - notes[0].tpc);
 
             for (var k = 1; k < candidates.length; k++) {
-                var distance = Math.abs(candidates[k] - bassNote.tpc);
+                var distance = Math.abs(candidates[k] - notes[0].tpc);
                 if (distance < minimalDistance) {
                     minimalDistance = distance;
                     closestTpc = candidates[k];
@@ -60,7 +53,7 @@ MuseScore {
         if (!notes.length)
             return;
 
-        // Find the overall TPC span to gauge the chord's average spelling weight.
+        // Find the chord's mean TPC span
         var minTpc = notes[0].tpc;
         var maxTpc = notes[0].tpc;
 
@@ -71,9 +64,14 @@ MuseScore {
             if (tpc > maxTpc)
                 maxTpc = tpc;
         }
-
         var averageTpc = (minTpc + maxTpc) / 2;
-        var TpcAdjust = 2;
+		
+		// TpcAdjust wheights the spelling towards the center.
+		// If TpcAdjust=1, spelling is totally in line with the key signature.
+        // If TpcAdjust>1, spelling is more "centered", avoiding most of double sharps/flats and extreme alterations.
+		// Default value is 2.
+		var TpcAdjust = 2;
+		// Key Signature is mapped to a TPC, centered on 16 and weighted by TpcAdjust.
         var keyTpc = 16 + keySignature/TpcAdjust;
 
         var difference = keyTpc - averageTpc;
@@ -83,14 +81,14 @@ MuseScore {
         if (!adjustment)
             return;
 
-        // Shift every note by a diatonic octave to better fit the key context.
+        // Shift the whole chord enharmonically to better fit the key context.
         for (var j = 0; j < notes.length; j++)
             notes[j].tpc += adjustment;
     }
 
     // Run both respelling steps on a single chord.
     function processChord(notes, keySignature) {
-        respellNotesRelativeToBass(notes);
+        respellNotes(notes);
         applyKeySignatureAdjustment(notes, keySignature);
     }
 
@@ -110,7 +108,7 @@ function processSelection() {
     }
 
     // 3) List selection => iterate over the chosen elements.
-    processListSelection(elems);
+    //processListSelection(elems);
 }
 
 
