@@ -47,11 +47,13 @@ MuseScore {
     // 2) Find minimal arc on the circle (length 12) covering all residues.
     // Sort residues (keep duplicates).
     var s = residues.slice().sort(function(a,b){ return a-b; });
+    console.log("respellNotes: sorted residues", s);
 
     // Duplicate with +12
     var t = s.slice();
     for (var k = 0; k < s.length; k++)
         t.push(s[k] + 12);
+    console.log("respellNotes: extended residues for wrapping", t);
 
     // Sliding window of size n
     var n = s.length;
@@ -60,9 +62,22 @@ MuseScore {
 
     for (var startIdx = 0; startIdx < n; startIdx++) {
         var span = t[startIdx + n - 1] - t[startIdx];
-        if (span < bestSpan) {
+        var windowStart = t[startIdx];
+        var windowEnd = windowStart + span;
+        var isBetter = span < bestSpan;
+
+        console.log(
+            "respellNotes: window", startIdx,
+            "start", windowStart,
+            "end", windowEnd,
+            "span", span,
+            isBetter ? "<= current best" : "> current best"
+        );
+
+        if (isBetter) {
             bestSpan = span;
-            bestStart = t[startIdx];
+            bestStart = windowStart;
+            console.log("respellNotes: new best window at index", startIdx, "with span", bestSpan);
         }
     }
 
