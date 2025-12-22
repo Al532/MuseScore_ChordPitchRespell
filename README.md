@@ -6,6 +6,7 @@ Note that the plugin analyzes each chord independently, without using a time win
 
 The core idea is to minimize the spread of [Tonal Pitch Classes](https://musescore.github.io/MuseScore_PluginAPI_Docs/plugins/html/tpc.html) across all notes of a chord, while also taking the current key signature into account.
 A configurable constant is used to down-weight the use of extreme accidentals (double flats and double sharps).
+As a tie-breaker, the algorithm also minimizes homonyms within a chord (e.g. G and G♯).
 
 ### Parallel maj7 chords
 
