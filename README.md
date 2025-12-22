@@ -1,21 +1,44 @@
-## Chord Pitch Respell plugin for Musescore
+## Chord Pitch Respell Plugin for MuseScore
 
-Enharmonic respelling tool optimized for MIDI-entered chords, preserving chord quality and respecting the current key signature. Best results are achieved when applied to a range selection, allowing chord-level logic to be applied. Note that the plugin only analyse the chord itself, without the use of a time window; therefore, its logic could be applied to MuseScore core MIDI entry, and this plugin is a proof of concept of a better behavior.
+Enharmonic respelling tool optimized for MIDI-entered chords, preserving chord quality and respecting the current key signature. Best results are achieved when applied to a range selection, allowing chord-level logic to be applied.
+
+Note that the plugin analyzes each chord independently, without using a time window. **As such, its logic could be applied directly to MuseScore’s core MIDI input. This plugin is intended as a proof of concept demonstrating improved enharmonic spelling behavior.**
 
 ### Parallel maj7 chords
+
 #### Raw MIDI entry
 ![](img/1-1.png)
+
 #### MuseScore default pitch respell
-Chords in red don't respect the chord quality.
+Chords highlighted in red exhibit inconsistent chord quality, even worse than the raw MIDI entry.
 ![](img/1-2.png)
+
 #### This plugin
-Every chord is correctly written, and time signature also taken into account.
+All chords are correctly spelled, with the key signature properly taken into account and improved readability.
 ![](img/1-3.png)
 
+### Big band saxophone chords (to be exploded across parts)
 
+#### Raw MIDI entry
 ![](img/2-1.png)
-![](img/1-2.png)
-![](img/1-3.png)
-![](img/3-1.png)
-![](img/3-2.png)
-![](img/3-3.png)
+
+#### MuseScore default pitch respell
+Chord highlighted in red exhibits inconsistent chord quality, and some double flats could have been avoided.
+![](img/2-2.png)
+
+#### This plugin
+All chords are correctly spelled, with the key signature properly taken into account and improved readability.
+![](img/2-3.png)
+
+### Big band trombone chords (to be exploded across parts)
+
+#### Raw MIDI entry
+![](img/4-1.png)
+
+#### MuseScore default pitch respell
+Chord highlighted in red exhibits inconsistent chord quality (A♭ and F♯), and some double flats could have been avoided.
+![](img/4-2.png)
+
+#### This plugin
+All chords are correctly spelled, with the key signature properly taken into account and improved readability.
+![](img/4-3.png)
