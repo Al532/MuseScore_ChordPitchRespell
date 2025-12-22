@@ -9,7 +9,7 @@ Note that the plugin analyzes each chord independently, without using a time win
 #### Raw MIDI entry
 ![](img/1-1.png)
 
-#### MuseScore default pitch respell
+#### MuseScore default 'optimize enharmonic spelling'
 Chords highlighted in red exhibit inconsistent chord quality, even worse than the raw MIDI entry.
 ![](img/1-2.png)
 
@@ -22,7 +22,7 @@ All chords are correctly spelled, with the key signature properly taken into acc
 #### Raw MIDI entry
 ![](img/2-1.png)
 
-#### MuseScore default pitch respell
+#### MuseScore default 'optimize enharmonic spelling'
 Chord highlighted in red exhibits inconsistent chord quality, and some double flats could have been avoided.
 ![](img/2-2.png)
 
@@ -35,7 +35,7 @@ All chords are correctly spelled, with the key signature properly taken into acc
 #### Raw MIDI entry
 ![](img/4-1.png)
 
-#### MuseScore default pitch respell
+#### MuseScore default 'optimize enharmonic spelling'
 Chord highlighted in red exhibits inconsistent chord quality (A♭ and F♯), and some double flats could have been avoided.
 ![](img/4-2.png)
 
