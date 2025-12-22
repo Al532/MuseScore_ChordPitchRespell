@@ -57,34 +57,90 @@ MuseScore {
 
     // Sliding window of size n
     var n = s.length;
-    var bestSpan = 1e9;
-    var bestStart = t[0];
+    var bestSpan = Infinity;
+    var minimalWindows = [];
 
     for (var startIdx = 0; startIdx < n; startIdx++) {
         var span = t[startIdx + n - 1] - t[startIdx];
         var windowStart = t[startIdx];
         var windowEnd = windowStart + span;
         var isBetter = span < bestSpan;
+        var isTie = span === bestSpan;
 
         console.log(
             "respellNotes: window", startIdx,
             "start", windowStart,
             "end", windowEnd,
             "span", span,
-            isBetter ? "<= current best" : "> current best"
+            isBetter ? "< current best" : (isTie ? "= current best" : "> current best")
         );
 
         if (isBetter) {
             bestSpan = span;
-            bestStart = windowStart;
-            console.log("respellNotes: new best window at index", startIdx, "with span", bestSpan);
+            minimalWindows = [{
+                startIdx: startIdx,
+                windowStart: windowStart,
+                windowEnd: windowEnd,
+                values: t.slice(startIdx, startIdx + n)
+            }];
+            console.log("respellNotes: new leading window at index", startIdx, "with span", bestSpan);
+        } else if (isTie) {
+            minimalWindows.push({
+                startIdx: startIdx,
+                windowStart: windowStart,
+                windowEnd: windowEnd,
+                values: t.slice(startIdx, startIdx + n)
+            });
+            console.log("respellNotes: window", startIdx, "added to tie for best span", bestSpan);
         }
     }
 
-    var start = bestStart;
-    var end   = start + bestSpan;
+    console.log("respellNotes: minimal windows count", minimalWindows.length, "with span", bestSpan);
 
-    console.log("respellNotes: best window", start, "to", end, "(span", bestSpan, ")");
+    function countExactSevenths(values) {
+        var count = 0;
+        for (var i = 0; i < values.length; i++) {
+            for (var j = i + 1; j < values.length; j++) {
+                if (values[j] - values[i] === 7)
+                    count++;
+            }
+        }
+        return count;
+    }
+
+    var chosenWindow = minimalWindows[0];
+    var fewestSevenths = countExactSevenths(chosenWindow.values);
+
+    console.log("respellNotes: evaluating ties on seventh intervals");
+    console.log(
+        "respellNotes: window", chosenWindow.startIdx,
+        "values", chosenWindow.values,
+        "sevenths", fewestSevenths,
+        "<= current minimum"
+    );
+
+    for (var w = 1; w < minimalWindows.length; w++) {
+        var windowInfo = minimalWindows[w];
+        var sevenths = countExactSevenths(windowInfo.values);
+
+        console.log(
+            "respellNotes: window", windowInfo.startIdx,
+            "values", windowInfo.values,
+            "sevenths", sevenths,
+            sevenths < fewestSevenths ? "< current minimum" : "≥ current minimum"
+        );
+
+        if (sevenths < fewestSevenths) {
+            chosenWindow = windowInfo;
+            fewestSevenths = sevenths;
+            console.log("respellNotes: new chosen window", windowInfo.startIdx, "with", sevenths, "sevenths");
+        }
+    }
+
+    var start = chosenWindow.windowStart;
+    var end   = chosenWindow.windowEnd;
+
+    console.log("respellNotes: best window", start, "to", end, "(span", bestSpan, "sevenths", fewestSevenths, ")");
 
     // 3) For each note, pick a candidate TPC that lies in [start, end] (allow +/-12 shifts).
     // Tie-break: closest to the chord reference (first note current tpc).
