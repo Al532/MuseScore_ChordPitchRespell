@@ -39,7 +39,7 @@ All chords are correctly spelled, with the key signature properly taken into acc
 ![](img/4-1.png)
 
 #### MuseScore default 'optimize enharmonic spelling'
-Chord highlighted in red exhibits inconsistent chord quality (A♭ and F♯), and some double flats could have been avoided.<br>
+Chord highlighted in red exhibits inconsistent chord quality (A♭, C# and F♯), and some double flats could have been avoided.<br>
 ![](img/4-2.png)
 
 #### This plugin
