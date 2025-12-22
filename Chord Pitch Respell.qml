@@ -82,7 +82,6 @@ MuseScore {
 
         var chosen = candidates[0];
         var bestScore = 1e9;
-        var bestSevenPenalty = 1e9;
 
         for (k = 0; k < candidates.length; k++) {
             var c = candidates[k];
@@ -96,25 +95,8 @@ MuseScore {
 
             // Score: keep chord tight (already ensured) + align to ref spelling
             var score = Math.abs(cIn - refTpc);
-
-            // Tie-breaker: avoid homonyms (TPC distances of 7) when possible.
-            var sevenPenalty = 0;
-            for (var otherIdx = 0; otherIdx < notes.length; otherIdx++) {
-                if (otherIdx === i)
-                    continue;
-                var otherTpc = notes[otherIdx].tpc;
-                if (typeof otherTpc !== "number")
-                    continue;
-                if (Math.abs(cIn - otherTpc) % 7 === 0 && cIn !== otherTpc)
-                    sevenPenalty++;
-            }
-
-            var betterScore = score < bestScore;
-            var betterTie = score === bestScore && sevenPenalty < bestSevenPenalty;
-
-            if (betterScore || betterTie) {
+            if (score < bestScore) {
                 bestScore = score;
-                bestSevenPenalty = sevenPenalty;
                 chosen = cIn;
             }
         }
