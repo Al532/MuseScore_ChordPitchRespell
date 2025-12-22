@@ -10,11 +10,11 @@ Note that the plugin analyzes each chord independently, without using a time win
 ![](img/1-1.png)
 
 #### MuseScore default 'optimize enharmonic spelling'
-Chords highlighted in red exhibit inconsistent chord quality, even worse than the raw MIDI entry.
+Chords highlighted in red exhibit inconsistent chord quality, even worse than the raw MIDI entry.<br>
 ![](img/1-2.png)
 
 #### This plugin
-All chords are correctly spelled, with the key signature properly taken into account and improved readability.
+All chords are correctly spelled, with the key signature properly taken into account and improved readability.<br>
 ![](img/1-3.png)
 
 ### Big band saxophone chords (to be exploded across parts)
@@ -23,11 +23,11 @@ All chords are correctly spelled, with the key signature properly taken into acc
 ![](img/2-1.png)
 
 #### MuseScore default 'optimize enharmonic spelling'
-Chord highlighted in red exhibits inconsistent chord quality, and some double flats could have been avoided.
+Chord highlighted in red exhibits inconsistent chord quality, and some double flats could have been avoided.<br>
 ![](img/2-2.png)
 
 #### This plugin
-All chords are correctly spelled, with the key signature properly taken into account and improved readability.
+All chords are correctly spelled, with the key signature properly taken into account and improved readability.<br>
 ![](img/2-3.png)
 
 ### Big band trombone chords (to be exploded across parts)
@@ -36,9 +36,9 @@ All chords are correctly spelled, with the key signature properly taken into acc
 ![](img/4-1.png)
 
 #### MuseScore default 'optimize enharmonic spelling'
-Chord highlighted in red exhibits inconsistent chord quality (A♭ and F♯), and some double flats could have been avoided.
+Chord highlighted in red exhibits inconsistent chord quality (A♭ and F♯), and some double flats could have been avoided.<br>
 ![](img/4-2.png)
 
 #### This plugin
-All chords are correctly spelled, with the key signature properly taken into account and improved readability.
+All chords are correctly spelled, with the key signature properly taken into account and improved readability.<br>
 ![](img/4-3.png)
