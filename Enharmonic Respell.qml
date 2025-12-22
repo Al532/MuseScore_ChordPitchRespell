@@ -47,6 +47,31 @@ MuseScore {
 
             note.tpc = closestTpc;
         }
+
+        // Compute the average TPC after the initial pass, then run a second pass
+        // to align each note toward this average spelling.
+        var totalTpc = 0;
+        for (var i = 0; i < notes.length; i++)
+            totalTpc += notes[i].tpc;
+
+        var meanTpc = totalTpc / notes.length;
+
+        for (var j = 0; j < notes.length; j++) {
+            var note = notes[j];
+            var candidates = pitchClassToTpcs[note.pitch % 12];
+            var closestToMean = candidates[0];
+            var minDistanceToMean = Math.abs(closestToMean - meanTpc);
+
+            for (var k = 1; k < candidates.length; k++) {
+                var distanceToMean = Math.abs(candidates[k] - meanTpc);
+                if (distanceToMean < minDistanceToMean) {
+                    minDistanceToMean = distanceToMean;
+                    closestToMean = candidates[k];
+                }
+            }
+
+            note.tpc = closestToMean;
+        }
     }
 
     function applyKeySignatureAdjustment(notes, keySignature) {
