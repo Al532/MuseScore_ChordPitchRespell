@@ -8,71 +8,104 @@ MuseScore {
     requiresScore: true
 
     function respellNotes(notes) {
-        if (notes.length < 2)
-            return;
+    if (!notes || notes.length < 2)
+        return;
 
-        var pitchClassToTpcs = {
-            0: [2, 14, 26],
-            1: [9, 21, 33],
-            2: [4, 16, 28],
-            3: [-1, 11, 23],
-            4: [6, 18, 30],
-            5: [1, 13, 25],
-            6: [8, 20, 32],
-            7: [3, 15, 27],
-            8: [10, 22],
-            9: [5, 17, 29],
-            10: [0, 12, 24],
-            11: [7, 19, 31]
-        };
+    var pitchClassToTpcs = {
+        0: [2, 14, 26],
+        1: [9, 21, 33],
+        2: [4, 16, 28],
+        3: [-1, 11, 23],
+        4: [6, 18, 30],
+        5: [1, 13, 25],
+        6: [8, 20, 32],
+        7: [3, 15, 27],
+        8: [10, 22],
+        9: [5, 17, 29],
+        10: [0, 12, 24],
+        11: [7, 19, 31]
+    };
 
-        for (var j = 1; j < notes.length; j++) {
-            var note = notes[j];
+    function mod12(x) {
+        var r = x % 12;
+        return r < 0 ? r + 12 : r;
+    }
 
-            if (note === notes[0])
-                continue;
+    // 1) Compute each note's residue class (TPC mod 12) from pitch class.
+    var residues = [];
+    for (var i = 0; i < notes.length; i++) {
+        var pcs = mod12(notes[i].pitch);
+        // Any candidate works for residue; take the first and reduce mod 12
+        residues.push(mod12(pitchClassToTpcs[pcs][0]));
+    }
 
-            // Choose the Tonal Pitch Class (TPC) closest to the first note so the spelling aligns naturally.
-            var candidates = pitchClassToTpcs[note.pitch % 12];
-            var closestTpc = candidates[0];
-            var minimalDistance = Math.abs(closestTpc - notes[0].tpc);
+    // 2) Find minimal arc on the circle (length 12) covering all residues.
+    // Sort residues (keep duplicates).
+    var s = residues.slice().sort(function(a,b){ return a-b; });
 
-            for (var k = 1; k < candidates.length; k++) {
-                var distance = Math.abs(candidates[k] - notes[0].tpc);
-                if (distance < minimalDistance) {
-                    minimalDistance = distance;
-                    closestTpc = candidates[k];
-                }
-            }
+    // Duplicate with +12
+    var t = s.slice();
+    for (var k = 0; k < s.length; k++)
+        t.push(s[k] + 12);
 
-            note.tpc = closestTpc;
-        }
+    // Sliding window of size n
+    var n = s.length;
+    var bestSpan = 1e9;
+    var bestStart = t[0];
 
-        // Compute the average TPC after the initial pass, then run a second pass
-        // to align each note toward this average spelling.
-        var totalTpc = 0;
-        for (var i = 0; i < notes.length; i++)
-            totalTpc += notes[i].tpc;
-
-        var meanTpc = totalTpc / notes.length;
-
-        for (var j = 0; j < notes.length; j++) {
-            var note = notes[j];
-            var candidates = pitchClassToTpcs[note.pitch % 12];
-            var closestToMean = candidates[0];
-            var minDistanceToMean = Math.abs(closestToMean - meanTpc);
-
-            for (var k = 1; k < candidates.length; k++) {
-                var distanceToMean = Math.abs(candidates[k] - meanTpc);
-                if (distanceToMean < minDistanceToMean) {
-                    minDistanceToMean = distanceToMean;
-                    closestToMean = candidates[k];
-                }
-            }
-
-            note.tpc = closestToMean;
+    for (var startIdx = 0; startIdx < n; startIdx++) {
+        var span = t[startIdx + n - 1] - t[startIdx];
+        if (span < bestSpan) {
+            bestSpan = span;
+            bestStart = t[startIdx];
         }
     }
+
+    var start = bestStart;
+    var end   = start + bestSpan;
+
+    // 3) For each note, pick a candidate TPC that lies in [start, end] (allow +/-12 shifts).
+    // Tie-break: closest to the chord reference (first note current tpc).
+    var refTpc = notes[0].tpc;
+
+    function liftIntoWindow(x, lo, hi) {
+        // Return x + 12k in [lo, hi] if possible; else nearest (clamped) by shifting.
+        // Because window length <= 11, there is at most one k that fits.
+        var y = x + 12 * Math.floor((lo - x) / 12);
+        if (y < lo) y += 12;
+        if (y > hi) y -= 12; // safety
+        return y;
+    }
+
+    for (i = 0; i < notes.length; i++) {
+        var note = notes[i];
+        var candidates = pitchClassToTpcs[mod12(note.pitch)];
+
+        var chosen = candidates[0];
+        var bestScore = 1e9;
+
+        for (k = 0; k < candidates.length; k++) {
+            var c = candidates[k];
+            var cIn = liftIntoWindow(c, start, end);
+
+            // Prefer candidates that actually land inside the window.
+            // If window construction is correct, at least one should.
+            var inside = (cIn >= start && cIn <= end);
+            if (!inside)
+                continue;
+
+            // Score: keep chord tight (already ensured) + align to ref spelling
+            var score = Math.abs(cIn - refTpc);
+            if (score < bestScore) {
+                bestScore = score;
+                chosen = cIn;
+            }
+        }
+
+        note.tpc = chosen;
+    }
+}
+
 
     function applyKeySignatureAdjustment(notes, keySignature) {
         if (!notes.length)
