@@ -2,7 +2,6 @@ import QtQuick 2.0
 import MuseScore 3.0
 
 MuseScore {
-    menuPath: "Plugins/"
     description: qsTr("Enharmonic respelling tool optimized for MIDI-entered chords, preserving chord quality and respecting the current key signature. Best results are achieved when applied to a range selection, allowing chord-level logic to be applied.")
     version: "1.3.0"
     requiresScore: true
