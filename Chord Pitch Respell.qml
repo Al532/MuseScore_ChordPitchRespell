@@ -111,7 +111,7 @@ MuseScore {
     var chosenWindow = minimalWindows[0];
     var fewestHomonyms = countExactHomonyms(chosenWindow.values);
 
-    console.log("respellNotes: evaluating ties on homonym intervals");
+    console.log("respellNotes: evaluating ties on homonym intervals"); // homonym count is the main tie-breaker
     console.log(
         "respellNotes: window", chosenWindow.startIdx,
         "values", chosenWindow.values,
@@ -143,8 +143,9 @@ MuseScore {
     console.log("respellNotes: best window", start, "to", end, "(span", bestSpan, "homonyms", fewestHomonyms, ")");
 
     // 3) For each note, pick a candidate TPC that lies in [start, end] (allow +/-12 shifts).
-    // Tie-break: avoid homonyms (e.g., G and G# in the same chord, TPC distance 7) and stay closest to the chord reference (first note current tpc).
-    var refTpc = notes[0].tpc;
+    // If multiple candidates survive the homonym pass, gently favor the first note's existing TPC;
+    // keySignatureAdjustment later ensures the chord still aligns with the key context.
+    var baseTpc = notes[0].tpc;
 
     function liftIntoWindow(x, lo, hi) {
         // Return x + 12k in [lo, hi] if possible; else nearest (clamped) by shifting.
@@ -172,8 +173,8 @@ MuseScore {
             if (!inside)
                 continue;
 
-            // Score: keep chord tight (already ensured) + align to ref spelling
-            var score = Math.abs(cIn - refTpc);
+            // Score: keep chord tight (already ensured) + gently prefer the existing chord spelling when still tied
+            var score = Math.abs(cIn - baseTpc);
             if (score < bestScore) {
                 bestScore = score;
                 chosen = cIn;
