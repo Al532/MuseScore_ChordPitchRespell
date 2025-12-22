@@ -108,7 +108,7 @@ function processSelection() {
     }
 
     // 3) List selection => iterate over the chosen elements.
-    //processListSelection(elems);
+    processListSelection(elems);
 }
 
 
@@ -125,38 +125,31 @@ function processRangeSelection(startTick, endTick) {
 }
 
 function processListSelection(elements) {
-    // Always process CHORDs, even if the user selected NOTE heads or other parts.
     var cursor = curScore.newCursor();
+    var seenNotes = {};
 
-    var seen = {}; // de-duplicate chords.
     for (var i = 0; i < elements.length; i++) {
         var e = elements[i];
         if (!e) continue;
 
-        var chord = null;
-
-        if (e.type === Element.CHORD) {
-            chord = e;
-        } else if (e.type === Element.NOTE) {
-            chord = e.parent; // a NOTE belongs to a CHORD
-        } else {
+        if (e.type !== Element.NOTE)
             continue;
-        }
 
+        var chord = e.parent;
         if (!chord) continue;
 
-        // Deduplication key: tick + track is sufficient in practice.
-        var key = chord.tick + ":" + chord.track;
-        if (seen[key]) continue;
-        seen[key] = true;
+        var noteKey = chord.tick + ":" + chord.track + ":" + e.pitch;
+        if (seenNotes[noteKey]) continue;
+        seenNotes[noteKey] = true;
 
-        // Safely retrieve the key signature at the chord's tick.
         cursor.track = chord.track;
         cursor.rewindToTick(chord.tick);
 
-        processChord(chord.notes, cursor.keySignature);
+        applyKeySignatureAdjustment([e], cursor.keySignature);
     }
 }
+
+
 
 
     onRun: {
