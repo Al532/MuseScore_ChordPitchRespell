@@ -97,7 +97,7 @@ MuseScore {
 
     console.log("respellNotes: minimal windows count", minimalWindows.length, "with span", bestSpan);
 
-    function countExactSevenths(values) {
+    function countExactHomonyms(values) {
         var count = 0;
         for (var i = 0; i < values.length; i++) {
             for (var j = i + 1; j < values.length; j++) {
@@ -109,41 +109,41 @@ MuseScore {
     }
 
     var chosenWindow = minimalWindows[0];
-    var fewestSevenths = countExactSevenths(chosenWindow.values);
+    var fewestHomonyms = countExactHomonyms(chosenWindow.values);
 
-    console.log("respellNotes: evaluating ties on seventh intervals");
+    console.log("respellNotes: evaluating ties on homonym intervals");
     console.log(
         "respellNotes: window", chosenWindow.startIdx,
         "values", chosenWindow.values,
-        "sevenths", fewestSevenths,
+        "homonyms", fewestHomonyms,
         "<= current minimum"
     );
 
     for (var w = 1; w < minimalWindows.length; w++) {
         var windowInfo = minimalWindows[w];
-        var sevenths = countExactSevenths(windowInfo.values);
+        var homonyms = countExactHomonyms(windowInfo.values);
 
         console.log(
             "respellNotes: window", windowInfo.startIdx,
             "values", windowInfo.values,
-            "sevenths", sevenths,
-            sevenths < fewestSevenths ? "< current minimum" : "≥ current minimum"
+            "homonyms", homonyms,
+            homonyms < fewestHomonyms ? "< current minimum" : "≥ current minimum"
         );
 
-        if (sevenths < fewestSevenths) {
+        if (homonyms < fewestHomonyms) {
             chosenWindow = windowInfo;
-            fewestSevenths = sevenths;
-            console.log("respellNotes: new chosen window", windowInfo.startIdx, "with", sevenths, "sevenths");
+            fewestHomonyms = homonyms;
+            console.log("respellNotes: new chosen window", windowInfo.startIdx, "with", homonyms, "homonyms");
         }
     }
 
     var start = chosenWindow.windowStart;
     var end   = chosenWindow.windowEnd;
 
-    console.log("respellNotes: best window", start, "to", end, "(span", bestSpan, "sevenths", fewestSevenths, ")");
+    console.log("respellNotes: best window", start, "to", end, "(span", bestSpan, "homonyms", fewestHomonyms, ")");
 
     // 3) For each note, pick a candidate TPC that lies in [start, end] (allow +/-12 shifts).
-    // Tie-break: closest to the chord reference (first note current tpc).
+    // Tie-break: avoid homonyms (e.g., G and G# in the same chord, TPC distance 7) and stay closest to the chord reference (first note current tpc).
     var refTpc = notes[0].tpc;
 
     function liftIntoWindow(x, lo, hi) {
