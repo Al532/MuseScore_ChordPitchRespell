@@ -1,5 +1,5 @@
-import QtQuick 2.0
-import MuseScore 3.0
+import QtQuick 2.15
+import MuseScore 4.0
 
 MuseScore {
     menuPath: "Plugins/"
@@ -32,7 +32,7 @@ MuseScore {
             if (note === notes[0])
                 continue;
 
-            // Choose the TPC closest to the first note so the spelling aligns naturally.
+            // Choose the Tonal Pitch Class (TPC) closest to the first note so the spelling aligns naturally.
             var candidates = pitchClassToTpcs[note.pitch % 12];
             var closestTpc = candidates[0];
             var minimalDistance = Math.abs(closestTpc - notes[0].tpc);
@@ -66,9 +66,9 @@ MuseScore {
         }
         var averageTpc = (minTpc + maxTpc) / 2;
 		
-		// TpcAdjust wheights the spelling towards the center.
-		// If TpcAdjust=1, spelling is totally in line with the key signature.
-        // If TpcAdjust>1, spelling is more "centered", avoiding most of double sharps/flats and extreme alterations.
+		// TpcAdjust weights the spelling towards the center.
+		// If TpcAdjust=1, spelling fully aligns with the key signature.
+        // If TpcAdjust>1, spelling is more "centered", avoiding most double sharps/flats and extreme alterations.
 		// Default value is 2.
 		var TpcAdjust = 2;
 		// Key Signature is mapped to a TPC, centered on 16 and weighted by TpcAdjust.
