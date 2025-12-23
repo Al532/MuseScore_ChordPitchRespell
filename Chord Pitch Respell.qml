@@ -15,8 +15,8 @@ import MuseScore 3.0
  * PHASE 1: Internal Harmonic Respelling
  *   1. Calculate Tonal Pitch Class (TPC) residues for all notes (modulo 12)
  *   2. Find the optimal arc on the circle of fifths containing all residues,
- *      balancing window span and a penalty for homonyms (same letter, different
- *      accidental) within the candidate chord
+ *      balancing window span and a penalty for homonyms (e.g. G and G#)
+ *      within the candidate chord
  *   3. Assign concrete TPC values within the optimal window
  *
  * PHASE 2: Contextual Adjustment
@@ -140,7 +140,7 @@ MuseScore {
         var HomonymPenalty = 3;
 
         /**
-         * Count pairs of exact homonyms (TPC difference = 7)
+         * Count pairs of homonyms (TPC difference = 7)
          */
         function countHomonyms(values) {
             var count = 0;
