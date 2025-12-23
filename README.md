@@ -43,5 +43,5 @@ Chord highlighted in red exhibits inconsistent chord quality (A♭, C# and F♯)
 ![](img/4-2.png)
 
 #### This plugin
-All chords are correctly spelled, with the key signature properly taken into account and improved readability.<br>
+All chords are correctly spelled, with just enough flexibility relative to the key signature to improve readability.<br>
 ![](img/4-3.png)
