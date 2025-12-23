@@ -11,15 +11,16 @@ import MuseScore 3.0
  * ALGORITHMIC PRINCIPLE:
  * ----------------------
  * The algorithm operates in 2 main phases:
- * 
+ *
  * PHASE 1: Internal Harmonic Respelling
  *   1. Calculate Tonal Pitch Class (TPC) residues for all notes (modulo 12)
- *   2. Find the minimal arc on the circle of fifths containing all residues
- *   3. Apply tie-breaker: minimize homonym pairs (e.g., G and G# in same chord)
- *   4. Assign concrete TPC values within the optimal window
- * 
+ *   2. Find the optimal arc on the circle of fifths containing all residues,
+ *      balancing window span and a penalty for homonyms (same letter, different
+ *      accidental) within the candidate chord
+ *   3. Assign concrete TPC values within the optimal window
+ *
  * PHASE 2: Contextual Adjustment
- *   5. Shift entire chord by multiples of 12 to align with key signature
+ *   4. Shift entire chord by multiples of 12 to align with key signature
  * 
  * TPC Reference: https://musescore.github.io/MuseScore_PluginAPI_Docs/plugins/html/tpc.html
  * 
@@ -38,14 +39,14 @@ MuseScore {
      * PHASE 1: INTERNAL HARMONIC RESPELLING
      * ======================================
      * 
-     * This function implements steps 1-4 of the algorithm to achieve
+     * This function implements steps 1-3 of the algorithm to achieve
      * harmonic coherence within a chord, independent of key signature.
      * 
      * Algorithm steps:
      * 1. Calculate TPC residue classes (modulo 12) for each note
-     * 2. Find the minimal arc on the circle of fifths
-     * 3. Minimize homonym pairs as tie-breaker
-     * 4. Assign concrete TPC values within the optimal window
+     * 2. Score circular windows by span plus a configurable homonym penalty
+     *    (TPC distance of 7) for every homonym pair inside the candidate window
+     * 3. Assign concrete TPC values within the optimal window
      * 
      * @param {Array} notes - Array of Note objects in the chord
      */
@@ -110,12 +111,12 @@ MuseScore {
         console.log("respellNotes: residue classes", residues);
 
         // =====================================================================
-        // STEP 2: FIND THE MINIMAL ARC ON THE CIRCLE OF FIFTHS
+        // STEP 2: FIND THE OPTIMAL ARC ON THE CIRCLE OF FIFTHS
         // =====================================================================
-        // Find the smallest arc on the circular residue space (0-11) that
-        // contains all residue classes. THIS IS THE CORE HARMONIC DECISION -
-        // the minimal window ensures all notes will be respelled close together
-        // in TPC space, preserving the chord's harmonic identity.
+        // Score each candidate window on the circular residue space (0-11)
+        // by combining the raw span with a penalty for homonym pairs inside
+        // the window. This favors compact windows while discouraging spellings
+        // that create visually ambiguous homonyms.
         //
         // Technique: sliding window on circular space using duplication
         
@@ -132,60 +133,12 @@ MuseScore {
 
         // Exhaustive search: test all windows of size n
         var n = s.length;
-        var bestSpan = Infinity;
-        var minimalWindows = [];
 
-        for (var startIdx = 0; startIdx < n; startIdx++) {
-            // Span = arc width (difference between last and first element)
-            var span = t[startIdx + n - 1] - t[startIdx];
-            var windowStart = t[startIdx];
-            var windowEnd = windowStart + span;
-            var isBetter = span < bestSpan;
-            var isTie = span === bestSpan;
+        // Configuration: weight homonym penalties when scoring windows.
+        // Tunable so advanced users can calibrate the trade-off between
+        // compact spans and avoiding homonym clashes.
+        var HomonymPenalty = 3;
 
-            console.log(
-                "respellNotes: window", startIdx,
-                "start", windowStart,
-                "end", windowEnd,
-                "span", span,
-                isBetter ? "< current best" : (isTie ? "= current best" : "> current best")
-            );
-
-            if (isBetter) {
-                // New best window found
-                bestSpan = span;
-                minimalWindows = [{
-                    startIdx: startIdx,
-                    windowStart: windowStart,
-                    windowEnd: windowEnd,
-                    values: t.slice(startIdx, startIdx + n)
-                }];
-                console.log("respellNotes: new leading window at index", startIdx, "with span", bestSpan);
-            } else if (isTie) {
-                // Tied window: keep it for later tiebreaking
-                minimalWindows.push({
-                    startIdx: startIdx,
-                    windowStart: windowStart,
-                    windowEnd: windowEnd,
-                    values: t.slice(startIdx, startIdx + n)
-                });
-                console.log("respellNotes: window", startIdx, "added to tie for best span", bestSpan);
-            }
-        }
-
-        console.log("respellNotes: minimal windows count", minimalWindows.length, "with span", bestSpan);
-
-        // =====================================================================
-        // STEP 3: TIE-BREAKER - MINIMIZE HOMONYM PAIRS
-        // =====================================================================
-        // A homonym pair consists of two notes with the same letter name but
-        // different accidentals (e.g., G and G#, or C and Cb).
-        // These create visual and musical ambiguity and should be avoided.
-        // 
-        // In TPC space, homonyms are exactly 7 units apart:
-        // - Example: G (TPC 15) and G# (TPC 22) differ by 7
-        // - Example: C (TPC 14) and Cb (TPC 7) differ by 7
-        
         /**
          * Count pairs of exact homonyms (TPC difference = 7)
          */
@@ -200,44 +153,52 @@ MuseScore {
             return count;
         }
 
-        var chosenWindow = minimalWindows[0];
-        var fewestHomonyms = countHomonyms(chosenWindow.values);
+        var bestSpan = Infinity;
+        var bestScore = Infinity;
+        var chosenWindow = null;
+        var bestHomonyms = 0;
 
-        console.log("respellNotes: evaluating ties on homonym pairs");
-        console.log(
-            "respellNotes: window", chosenWindow.startIdx,
-            "values", chosenWindow.values,
-            "homonym pairs", fewestHomonyms,
-            "<= current minimum"
-        );
-
-        // Compare all tied windows
-        // Fallback: if homonym counts are equal, keep the first window (lowest startIdx)
-        for (var w = 1; w < minimalWindows.length; w++) {
-            var windowInfo = minimalWindows[w];
-            var homonyms = countHomonyms(windowInfo.values);
+        for (var startIdx = 0; startIdx < n; startIdx++) {
+            // Span = arc width (difference between last and first element)
+            var span = t[startIdx + n - 1] - t[startIdx];
+            var windowStart = t[startIdx];
+            var windowEnd = windowStart + span;
+            var windowValues = t.slice(startIdx, startIdx + n);
+            var homonymPairs = countHomonyms(windowValues);
+            var windowScore = span + homonymPairs * HomonymPenalty;
 
             console.log(
-                "respellNotes: window", windowInfo.startIdx,
-                "values", windowInfo.values,
-                "homonym pairs", homonyms,
-                homonyms < fewestHomonyms ? "< current minimum" : "≥ current minimum"
+                "respellNotes: window", startIdx,
+                "start", windowStart,
+                "end", windowEnd,
+                "span", span,
+                "homonym pairs", homonymPairs,
+                "score", windowScore,
+                windowScore < bestScore ? "< current best" : (windowScore === bestScore ? "= current best" : "> current best")
             );
 
-            if (homonyms < fewestHomonyms) {
-                chosenWindow = windowInfo;
-                fewestHomonyms = homonyms;
-                console.log("respellNotes: new chosen window", windowInfo.startIdx, "with", homonyms, "homonym pairs");
+            // Prefer lower scores; break ties on smaller spans to keep compactness.
+            if (windowScore < bestScore || (windowScore === bestScore && span < bestSpan)) {
+                bestSpan = span;
+                bestScore = windowScore;
+                chosenWindow = {
+                    startIdx: startIdx,
+                    windowStart: windowStart,
+                    windowEnd: windowEnd,
+                    values: windowValues
+                };
+                bestHomonyms = homonymPairs;
+                console.log("respellNotes: new leading window at index", startIdx, "with span", bestSpan, "homonym pairs", bestHomonyms, "score", bestScore);
             }
         }
 
         var start = chosenWindow.windowStart;
         var end   = chosenWindow.windowEnd;
 
-        console.log("respellNotes: optimal window", start, "to", end, "(span", bestSpan, "homonym pairs", fewestHomonyms, ")");
+        console.log("respellNotes: optimal window", start, "to", end, "(span", bestSpan, "homonym pairs", bestHomonyms, "score", bestScore, ")");
 
         // =====================================================================
-        // STEP 4: ASSIGN CONCRETE TPC VALUES
+        // STEP 3: ASSIGN CONCRETE TPC VALUES
         // =====================================================================
         // Apply the harmonic structure decided in steps 2-3 by selecting the
         // enharmonic candidate that falls within the optimal window.
@@ -357,10 +318,10 @@ MuseScore {
      * 
      * Orchestrates the complete 2-phase algorithm:
      * 
-     * Phase 1: Internal harmonic respelling (steps 1-4)
+     * Phase 1: Internal harmonic respelling (steps 1-3)
      *          - Analyzes chord structure
      *          - Finds optimal enharmonic spellings
-     *          - Minimizes homonym pairs
+     *          - Balances compact spans with homonym avoidance
      * 
      * Phase 2: Contextual adjustment (step 5)
      *          - Aligns result with key signature
@@ -371,8 +332,8 @@ MuseScore {
      */
     function processChord(notes, keySignature) {
         console.log("processChord: starting with", notes.length, "notes and key signature", keySignature);
-        respellNotes(notes);                            // Phase 1: steps 1-4
-        applyKeySignatureAdjustment(notes, keySignature); // Phase 2: step 5
+        respellNotes(notes);                            // Phase 1: steps 1-3
+        applyKeySignatureAdjustment(notes, keySignature); // Phase 2: step 4
         console.log("processChord: finished");
     }
 
