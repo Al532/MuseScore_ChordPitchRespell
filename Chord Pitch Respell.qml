@@ -358,7 +358,16 @@ MuseScore {
         // Case 2: Range selection (RECOMMENDED for best results)
         if (sel.isRange) {
             console.log("processSelection: processing range selection");
-            processRangeSelection(sel.startSegment.tick, sel.endSegment.tick);
+            var endTick = sel.endSegment ? sel.endSegment.tick : null;
+            if (endTick === null) {
+                if (curScore.lastSegment) {
+                    endTick = curScore.lastSegment.tick;
+                } else {
+                    endTick = sel.startSegment.tick;
+                }
+                console.log("processSelection: end segment missing, using endTick", endTick);
+            }
+            processRangeSelection(sel.startSegment.tick, endTick);
             return;
         }
 
@@ -384,7 +393,7 @@ MuseScore {
         console.log("processRangeSelection: from", startTick, "to", endTick);
 
         // Iterate over all segments in the range
-        while (cursor.segment && cursor.tick < endTick) {
+        while (cursor.segment && cursor.tick <= endTick) {
             if (cursor.element && cursor.element.type === Element.CHORD) {
                 console.log("processRangeSelection: processing chord at tick", cursor.tick, "track", cursor.track);
                 processChord(cursor.element.notes, cursor.keySignature);
