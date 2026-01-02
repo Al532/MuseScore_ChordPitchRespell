@@ -29,11 +29,15 @@ MuseScore {
     };
 
     function mod12(x) {
+        console.log("mod12", x);
         var r = x % 12;
-        return r < 0 ? r + 12 : r;
+        var result = r < 0 ? r + 12 : r;
+        console.log("mod12 result", result);
+        return result;
     }
 
     function uniqueSorted(values) {
+        console.log("uniqueSorted input", values);
         var map = {};
         var result = [];
         for (var i = 0; i < values.length; i++) {
@@ -44,10 +48,12 @@ MuseScore {
             }
         }
         result.sort(function(a, b) { return a - b; });
+        console.log("uniqueSorted output", result);
         return result;
     }
 
     function intersect(a, b) {
+        console.log("intersect input", a, b);
         var set = {};
         var result = [];
         for (var i = 0; i < a.length; i++)
@@ -57,26 +63,34 @@ MuseScore {
             if (set[v])
                 result.push(v);
         }
-        return uniqueSorted(result);
+        var output = uniqueSorted(result);
+        console.log("intersect output", output);
+        return output;
     }
 
     function averageTpc(notes) {
+        console.log("averageTpc notes length", notes ? notes.length : "null");
         var total = 0;
         for (var i = 0; i < notes.length; i++)
             total += notes[i].tpc;
-        return total / notes.length;
+        var avg = total / notes.length;
+        console.log("averageTpc result", avg);
+        return avg;
     }
 
     function validShiftsForChord(notes) {
+        console.log("validShiftsForChord notes length", notes ? notes.length : "null");
         if (!notes || notes.length === 0)
             return [];
 
         var shifts = null;
         for (var i = 0; i < notes.length; i++) {
             var note = notes[i];
+            console.log("validShiftsForChord note", i, "pitch", note.pitch, "tpc", note.tpc);
             var pcs = mod12(note.pitch);
             var allowed = pitchClassToTpcs[pcs];
             if (!allowed) {
+                console.log("validShiftsForChord no allowed TPCs for pitch class", pcs);
                 return [];
             }
 
@@ -88,16 +102,20 @@ MuseScore {
             }
 
             noteShifts = uniqueSorted(noteShifts);
+            console.log("validShiftsForChord note shifts", noteShifts);
             if (shifts === null)
                 shifts = noteShifts;
             else
                 shifts = intersect(shifts, noteShifts);
         }
 
-        return shifts ? shifts : [];
+        var result = shifts ? shifts : [];
+        console.log("validShiftsForChord result", result);
+        return result;
     }
 
     function chooseShift(notes, shifts) {
+        console.log("chooseShift shifts", shifts);
         if (!shifts || shifts.length <= 1)
             return 0;
 
@@ -111,6 +129,7 @@ MuseScore {
 
         var avg = averageTpc(notes);
         var direction = avg < 16 ? 1 : (avg > 16 ? -1 : 1);
+        console.log("chooseShift avg", avg, "direction", direction);
 
         if (direction > 0) {
             for (var i = currentIndex + 1; i < sorted.length; i++) {
@@ -136,23 +155,34 @@ MuseScore {
     }
 
     function cycleChord(notes) {
+        console.log("cycleChord notes length", notes ? notes.length : "null");
         var shifts = validShiftsForChord(notes);
         var shift = chooseShift(notes, shifts);
-        if (!shift)
+        console.log("cycleChord selected shift", shift);
+        if (!shift) {
+            console.log("cycleChord no shift applied");
             return;
+        }
 
-        for (var i = 0; i < notes.length; i++)
+        for (var i = 0; i < notes.length; i++) {
+            console.log("cycleChord apply shift to note", i, "old tpc", notes[i].tpc, "shift", shift);
             notes[i].tpc += shift;
+            console.log("cycleChord new tpc", notes[i].tpc);
+        }
     }
 
     function processSelection() {
+        console.log("processSelection start");
         var sel = curScore.selection;
         var elems = sel ? sel.elements : null;
 
-        if (!elems || elems.length === 0)
+        if (!elems || elems.length === 0) {
+            console.log("processSelection no elements in selection");
             return;
+        }
 
         if (sel.isRange) {
+            console.log("processSelection range selection");
             var endTick = sel.endSegment ? sel.endSegment.tick : null;
             if (endTick === null) {
                 if (curScore.lastSegment)
@@ -160,53 +190,71 @@ MuseScore {
                 else
                     endTick = sel.startSegment.tick;
             }
+            console.log("processSelection range startTick", sel.startSegment.tick, "endTick", endTick);
             processRangeSelection(sel.startSegment.tick, endTick);
             return;
         }
 
+        console.log("processSelection list selection length", elems.length);
         processListSelection(elems);
     }
 
     function processRangeSelection(startTick, endTick) {
+        console.log("processRangeSelection startTick", startTick, "endTick", endTick);
         var cursor = curScore.newCursor();
         cursor.rewind(Cursor.SELECTION_START);
 
         while (cursor.segment && cursor.tick <= endTick) {
-            if (cursor.element && cursor.element.type === Element.CHORD)
+            if (cursor.element && cursor.element.type === Element.CHORD) {
+                console.log("processRangeSelection chord at tick", cursor.tick, "track", cursor.element.track);
                 cycleChord(cursor.element.notes);
+            }
             cursor.next();
         }
     }
 
     function processListSelection(elements) {
+        console.log("processListSelection elements length", elements.length);
         var seenChords = {};
         for (var i = 0; i < elements.length; i++) {
             var e = elements[i];
-            if (!e || e.type !== Element.NOTE)
+            if (!e || e.type !== Element.NOTE) {
+                console.log("processListSelection skip non-note element", i);
                 continue;
+            }
 
             var chord = e.parent;
-            if (!chord)
+            if (!chord) {
+                console.log("processListSelection missing chord parent", i);
                 continue;
+            }
 
             var chordKey = chord.tick + ":" + chord.track;
-            if (seenChords[chordKey])
+            if (seenChords[chordKey]) {
+                console.log("processListSelection chord already processed", chordKey);
                 continue;
+            }
             seenChords[chordKey] = true;
 
+            console.log("processListSelection cycle chord", chordKey, "notes", chord.notes.length);
             cycleChord(chord.notes);
         }
     }
 
     onRun: {
+        console.log("Cycle Enharmonic Spelling onRun");
         if (!curScore) {
+            console.log("No current score, quitting");
             Qt.quit();
             return;
         }
 
+        console.log("Starting command");
         curScore.startCmd();
         processSelection();
+        console.log("Ending command");
         curScore.endCmd();
+        console.log("Cycle Enharmonic Spelling finished");
         Qt.quit();
     }
 }
