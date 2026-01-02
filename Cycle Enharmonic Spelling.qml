@@ -203,29 +203,14 @@ MuseScore {
 
     function processListSelection(elements) {
         console.log("processListSelection elements length", elements.length);
-        var seenChords = {};
         for (var i = 0; i < elements.length; i++) {
             var e = elements[i];
             if (!e || e.type !== Element.NOTE) {
                 console.log("processListSelection skip non-note element", i);
                 continue;
             }
-
-            var chord = e.parent;
-            if (!chord) {
-                console.log("processListSelection missing chord parent", i);
-                continue;
-            }
-
-            var chordKey = chord.tick + ":" + chord.track;
-            if (seenChords[chordKey]) {
-                console.log("processListSelection chord already processed", chordKey);
-                continue;
-            }
-            seenChords[chordKey] = true;
-
-            console.log("processListSelection cycle chord", chordKey, "notes", chord.notes.length);
-            cycleChord(chord.notes);
+            console.log("processListSelection cycle note", i, "pitch", e.pitch, "tpc", e.tpc);
+            cycleChord([e]);
         }
     }
 
