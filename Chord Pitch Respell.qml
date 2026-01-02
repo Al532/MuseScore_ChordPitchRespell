@@ -231,11 +231,7 @@ MuseScore {
                 }
             }
 
-            var previousTpc = note.tpc;
             note.tpc = chosen;
-            if (note.tpc2 !== undefined && note.tpc2 !== null) {
-                note.tpc2 += (chosen - previousTpc);
-            }
             console.log("respellNotes: note", i, "pitch", note.pitch, "assigned TPC", chosen, "(candidates", candidates, ")");
         }
     }
@@ -312,9 +308,6 @@ MuseScore {
         // Apply translation to entire chord (preserves internal relationships)
         for (var j = 0; j < notes.length; j++) {
             notes[j].tpc += adjustment;
-            if (notes[j].tpc2 !== undefined && notes[j].tpc2 !== null) {
-                notes[j].tpc2 += adjustment;
-            }
         }
         console.log("applyKeySignatureAdjustment: applied adjustment", adjustment);
     }
