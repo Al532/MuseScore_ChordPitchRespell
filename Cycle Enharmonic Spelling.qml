@@ -13,7 +13,7 @@ MuseScore {
     version: "1.0.0"
     requiresScore: true
 
-    var pitchClassToTpcs = {
+    property var pitchClassToTpcs: ({
         0: [2, 14, 26],
         1: [9, 21, 33],
         2: [4, 16, 28],
@@ -26,7 +26,7 @@ MuseScore {
         9: [5, 17, 29],
         10: [0, 12, 24],
         11: [7, 19, 31]
-    };
+    })
 
     function mod12(x) {
         console.log("mod12", x);
