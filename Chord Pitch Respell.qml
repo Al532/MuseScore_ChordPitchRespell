@@ -393,7 +393,7 @@ MuseScore {
         console.log("processRangeSelection: from", startTick, "to", endTick);
 
         // Iterate over all segments in the range
-        while (cursor.segment && cursor.tick <= endTick) {
+        while (cursor.segment && cursor.tick < endTick) {
             if (cursor.element && cursor.element.type === Element.CHORD) {
                 console.log("processRangeSelection: processing chord at tick", cursor.tick, "track", cursor.track);
                 processChord(cursor.element.notes, cursor.keySignature);
