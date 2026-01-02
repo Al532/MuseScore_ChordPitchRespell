@@ -128,27 +128,15 @@ MuseScore {
             return currentIndex === 0 ? sorted[1] : sorted[0];
 
         var avg = averageTpc(notes);
-        var direction = avg < 16 ? 1 : (avg > 16 ? -1 : 1);
-        console.log("chooseShift avg", avg, "direction", direction);
+        console.log("chooseShift avg", avg, "direction", "ascending");
 
-        if (direction > 0) {
-            for (var i = currentIndex + 1; i < sorted.length; i++) {
-                if (sorted[i] > 0)
-                    return sorted[i];
-            }
-            for (var j = 0; j < sorted.length; j++) {
-                if (sorted[j] !== 0)
-                    return sorted[j];
-            }
-        } else {
-            for (var k = currentIndex - 1; k >= 0; k--) {
-                if (sorted[k] < 0)
-                    return sorted[k];
-            }
-            for (var l = sorted.length - 1; l >= 0; l--) {
-                if (sorted[l] !== 0)
-                    return sorted[l];
-            }
+        for (var i = currentIndex + 1; i < sorted.length; i++) {
+            if (sorted[i] > 0)
+                return sorted[i];
+        }
+        for (var j = 0; j < sorted.length; j++) {
+            if (sorted[j] !== 0)
+                return sorted[j];
         }
 
         return 0;
