@@ -212,6 +212,12 @@ MuseScore {
             return y;
         }
 
+        function setNoteTpcs(note, tpc) {
+            var dtpc = note.tpc2 - note.tpc1;
+            note.tpc1 = tpc;
+            note.tpc2 = tpc + dtpc;
+        }
+
         // Assignment for each note
         for (i = 0; i < notes.length; i++) {
             var note = notes[i];
@@ -231,7 +237,7 @@ MuseScore {
                 }
             }
 
-            note.tpc = chosen;
+            setNoteTpcs(note, chosen);
             console.log("respellNotes: note", i, "pitch", note.pitch, "assigned TPC", chosen, "(candidates", candidates, ")");
         }
     }
@@ -274,11 +280,11 @@ MuseScore {
         }
 
         // Calculate the TPC center of the chord (min/max average)
-        var minTpc = notes[0].tpc;
-        var maxTpc = notes[0].tpc;
+        var minTpc = notes[0].tpc1;
+        var maxTpc = notes[0].tpc1;
 
         for (var i = 1; i < notes.length; i++) {
-            var tpc = notes[i].tpc;
+            var tpc = notes[i].tpc1;
             if (tpc < minTpc)
                 minTpc = tpc;
             if (tpc > maxTpc)
@@ -307,7 +313,9 @@ MuseScore {
 
         // Apply translation to entire chord (preserves internal relationships)
         for (var j = 0; j < notes.length; j++) {
-            notes[j].tpc += adjustment;
+            var dtpc = notes[j].tpc2 - notes[j].tpc1;
+            notes[j].tpc1 += adjustment;
+            notes[j].tpc2 = notes[j].tpc1 + dtpc;
         }
         console.log("applyKeySignatureAdjustment: applied adjustment", adjustment);
     }
