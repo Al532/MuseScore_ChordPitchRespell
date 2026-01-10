@@ -177,8 +177,8 @@ MuseScore {
                 windowScore < bestScore ? "< current best" : (windowScore === bestScore ? "= current best" : "> current best")
             );
 
-            // Prefer lower scores; break ties on smaller spans to keep compactness.
-            if (windowScore < bestScore || (windowScore === bestScore && span < bestSpan)) {
+            // Prefer lower scores; break ties on lower TPC windows (favoring flats).
+            if (windowScore < bestScore || (windowScore === bestScore && (chosenWindow === null || windowStart < chosenWindow.windowStart))) {
                 bestSpan = span;
                 bestScore = windowScore;
                 chosenWindow = {
