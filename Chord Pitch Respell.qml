@@ -177,8 +177,8 @@ MuseScore {
                 windowScore < bestScore ? "< current best" : (windowScore === bestScore ? "= current best" : "> current best")
             );
 
-            // Prefer lower scores; break ties on lower TPC windows (favoring flats).
-            if (windowScore < bestScore || (windowScore === bestScore && (chosenWindow === null || windowStart < chosenWindow.windowStart))) {
+            // Prefer lower scores only.
+            if (windowScore < bestScore) {
                 bestSpan = span;
                 bestScore = windowScore;
                 chosenWindow = {
@@ -304,8 +304,16 @@ MuseScore {
 
         var difference = keyTpc - averageTpc;
 
-        // Round to nearest enharmonic translation (multiple of 12)
-        var adjustment = Math.round(difference / 12) * 12;
+        // Round to nearest enharmonic translation (multiple of 12).
+        // Favor flats in case of a tie.
+        var adjustment;
+        if (difference === 6) {
+            adjustment = -12;
+        } else if (difference === -6) {
+            adjustment = 0;
+        } else {
+            adjustment = Math.round(difference / 12) * 12;
+        }
         if (!adjustment) {
             console.log("applyKeySignatureAdjustment: no adjustment needed");
             return;
