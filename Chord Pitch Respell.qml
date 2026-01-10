@@ -137,7 +137,7 @@ MuseScore {
         // Configuration: weight homonym penalties when scoring windows.
         // Tunable so advanced users can calibrate the trade-off between
         // compact spans and avoiding homonym clashes.
-        var HomonymPenalty = 3;
+        var HomonymPenalty = 4;
 
         /**
          * Count pairs of homonyms (TPC difference = 7)
@@ -302,7 +302,7 @@ MuseScore {
         // Base 16 (D natural) ± weighted key signature influence
         var keyTpc = 16 + keySignature / TpcAdjust;
 
-        var difference = keyTpc - averageTpc;
+        var difference = averageTpc - keyTpc;
 
         // Round to nearest enharmonic translation (multiple of 12).
         // Favor flats in case of a tie.
@@ -312,7 +312,7 @@ MuseScore {
         } else if (difference === -6) {
             adjustment = 0;
         } else {
-            adjustment = Math.round(difference / 12) * 12;
+            adjustment = - Math.round(difference / 12) * 12;
         }
         if (!adjustment) {
             console.log("applyKeySignatureAdjustment: no adjustment needed");
