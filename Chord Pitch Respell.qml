@@ -54,7 +54,7 @@ MuseScore {
         // Validation: a chord requires at least 2 notes
         if (!notes || notes.length < 2) {
             console.log("respellNotes: skipping because chord has less than two notes");
-            return;
+            return [];
         }
 
         console.log("respellNotes: processing", notes.length, "notes");
@@ -157,6 +157,7 @@ MuseScore {
         var bestScore = Infinity;
         var chosenWindow = null;
         var bestHomonyms = 0;
+        var bestWindows = [];
 
         for (var startIdx = 0; startIdx < n; startIdx++) {
             // Span = arc width (difference between last and first element)
@@ -188,7 +189,17 @@ MuseScore {
                     values: windowValues
                 };
                 bestHomonyms = homonymPairs;
+                bestWindows = [chosenWindow];
                 console.log("respellNotes: new leading window at index", startIdx, "with span", bestSpan, "homonym pairs", bestHomonyms, "score", bestScore);
+            } else if (windowScore === bestScore) {
+                var tiedWindow = {
+                    startIdx: startIdx,
+                    windowStart: windowStart,
+                    windowEnd: windowEnd,
+                    values: windowValues
+                };
+                bestWindows.push(tiedWindow);
+                console.log("respellNotes: tied window at index", startIdx, "with span", span, "homonym pairs", homonymPairs, "score", windowScore);
             }
         }
 
@@ -212,34 +223,42 @@ MuseScore {
             return y;
         }
 
-        function setNoteTpcs(note, tpc) {
-            var dtpc = note.tpc2 - note.tpc1;
-            note.tpc1 = tpc;
-            note.tpc2 = tpc + dtpc;
-        }
-
-        // Assignment for each note
-        for (i = 0; i < notes.length; i++) {
-            var note = notes[i];
-            var candidates = pitchClassToTpcs[mod12(note.pitch)];
-
-            var chosen = candidates[0];
+        function pickNoteTpc(candidateTpcs, windowStart, windowEnd) {
+            var chosen = candidateTpcs[0];
 
             // Find the candidate that falls within the window
             // Since window span ≤ 11 and candidates are 12 apart, only one can fit
-            for (k = 0; k < candidates.length; k++) {
-                var c = candidates[k];
-                var cIn = liftIntoWindow(c, start, end);
+            for (k = 0; k < candidateTpcs.length; k++) {
+                var c = candidateTpcs[k];
+                var cIn = liftIntoWindow(c, windowStart, windowEnd);
 
-                if (cIn >= start && cIn <= end) {
+                if (cIn >= windowStart && cIn <= windowEnd) {
                     chosen = cIn;
                     break;
                 }
             }
-
-            setNoteTpcs(note, chosen);
-            console.log("respellNotes: note", i, "pitch", note.pitch, "assigned TPC", chosen, "(candidates", candidates, ")");
+            return chosen;
         }
+
+        var candidatesByWindow = [];
+
+        // Assignment for each note, per tied window
+        for (var w = 0; w < bestWindows.length; w++) {
+            var window = bestWindows[w];
+            var windowAssignments = [];
+
+            for (i = 0; i < notes.length; i++) {
+                var note = notes[i];
+                var candidates = pitchClassToTpcs[mod12(note.pitch)];
+                var chosen = pickNoteTpc(candidates, window.windowStart, window.windowEnd);
+                windowAssignments.push(chosen);
+            }
+
+            candidatesByWindow.push(windowAssignments);
+            console.log("respellNotes: window", window.startIdx, "assigned TPCs", windowAssignments);
+        }
+
+        return candidatesByWindow;
     }
 
 
@@ -273,27 +292,12 @@ MuseScore {
      * @param {Array} notes - Chord notes
      * @param {Number} keySignature - Key signature (-7 to +7, 0 = C major/A minor)
      */
-    function applyKeySignatureAdjustment(notes, keySignature) {
+    function applyKeySignatureAdjustment(notes, keySignature, candidatesByWindow) {
         if (!notes.length) {
             console.log("applyKeySignatureAdjustment: no notes provided");
             return;
         }
 
-        // Calculate the TPC center of the chord (min/max average)
-        var minTpc = notes[0].tpc1;
-        var maxTpc = notes[0].tpc1;
-
-        for (var i = 1; i < notes.length; i++) {
-            var tpc = notes[i].tpc1;
-            if (tpc < minTpc)
-                minTpc = tpc;
-            if (tpc > maxTpc)
-                maxTpc = tpc;
-        }
-        var averageTpc = (minTpc + maxTpc) / 2;
-
-        console.log("applyKeySignatureAdjustment: keySignature", keySignature, "minTpc", minTpc, "maxTpc", maxTpc, "avg", averageTpc);
-        
         // Adjustment weight configuration
         // TpcAdjust = 2 provides balanced results for most use cases
         var TpcAdjust = 2;
@@ -302,19 +306,95 @@ MuseScore {
         // Base 16 (D natural) ± weighted key signature influence
         var keyTpc = 16 + keySignature / TpcAdjust;
 
-        var difference = averageTpc - keyTpc;
-
-        // Round to nearest enharmonic translation (multiple of 12).
-        // Favor flats in case of a tie.
-        var adjustment;
-        if (difference === 6) {
-            adjustment = -12;
-        } else if (difference === -6) {
-            adjustment = 0;
-        } else {
-            adjustment = - Math.round(difference / 12) * 12;
+        function computeAdjustment(difference) {
+            // Round to nearest enharmonic translation (multiple of 12).
+            // Favor flats in case of a tie.
+            if (difference === 6) {
+                return -12;
+            }
+            if (difference === -6) {
+                return 0;
+            }
+            return -Math.round(difference / 12) * 12;
         }
-        if (!adjustment) {
+
+        function getAverageTpc(values) {
+            var minTpc = values[0];
+            var maxTpc = values[0];
+
+            for (var i = 1; i < values.length; i++) {
+                var tpc = values[i];
+                if (tpc < minTpc)
+                    minTpc = tpc;
+                if (tpc > maxTpc)
+                    maxTpc = tpc;
+            }
+            return {
+                minTpc: minTpc,
+                maxTpc: maxTpc,
+                averageTpc: (minTpc + maxTpc) / 2
+            };
+        }
+
+        function setNoteTpcs(note, tpc) {
+            var dtpc = note.tpc2 - note.tpc1;
+            note.tpc1 = tpc;
+            note.tpc2 = tpc + dtpc;
+        }
+
+        var candidates = candidatesByWindow && candidatesByWindow.length ? candidatesByWindow : null;
+        var selectedAssignments = null;
+        var selectedAdjustment = 0;
+
+        if (candidates) {
+            var bestScore = Infinity;
+            for (var c = 0; c < candidates.length; c++) {
+                var candidate = candidates[c];
+                var averageInfo = getAverageTpc(candidate);
+                var difference = averageInfo.averageTpc - keyTpc;
+                var adjustment = computeAdjustment(difference);
+                var residual = difference + adjustment;
+                var score = Math.abs(residual);
+
+                console.log(
+                    "applyKeySignatureAdjustment: candidate", c,
+                    "minTpc", averageInfo.minTpc,
+                    "maxTpc", averageInfo.maxTpc,
+                    "avg", averageInfo.averageTpc,
+                    "difference", difference,
+                    "adjustment", adjustment,
+                    "score", score
+                );
+
+                if (score < bestScore) {
+                    bestScore = score;
+                    selectedAssignments = candidate;
+                    selectedAdjustment = adjustment;
+                }
+            }
+
+            for (var n = 0; n < notes.length; n++) {
+                setNoteTpcs(notes[n], selectedAssignments[n]);
+            }
+        } else {
+            var currentValues = [];
+            for (var currentIdx = 0; currentIdx < notes.length; currentIdx++) {
+                currentValues.push(notes[currentIdx].tpc1);
+            }
+            var currentAverageInfo = getAverageTpc(currentValues);
+            var currentDifference = currentAverageInfo.averageTpc - keyTpc;
+            selectedAdjustment = computeAdjustment(currentDifference);
+            console.log(
+                "applyKeySignatureAdjustment: keySignature", keySignature,
+                "minTpc", currentAverageInfo.minTpc,
+                "maxTpc", currentAverageInfo.maxTpc,
+                "avg", currentAverageInfo.averageTpc,
+                "difference", currentDifference,
+                "adjustment", selectedAdjustment
+            );
+        }
+
+        if (!selectedAdjustment) {
             console.log("applyKeySignatureAdjustment: no adjustment needed");
             return;
         }
@@ -322,10 +402,10 @@ MuseScore {
         // Apply translation to entire chord (preserves internal relationships)
         for (var j = 0; j < notes.length; j++) {
             var dtpc = notes[j].tpc2 - notes[j].tpc1;
-            notes[j].tpc1 += adjustment;
+            notes[j].tpc1 += selectedAdjustment;
             notes[j].tpc2 = notes[j].tpc1 + dtpc;
         }
-        console.log("applyKeySignatureAdjustment: applied adjustment", adjustment);
+        console.log("applyKeySignatureAdjustment: applied adjustment", selectedAdjustment);
     }
 
     /**
@@ -348,8 +428,8 @@ MuseScore {
      */
     function processChord(notes, keySignature) {
         console.log("processChord: starting with", notes.length, "notes and key signature", keySignature);
-        respellNotes(notes);                            // Phase 1: steps 1-3
-        applyKeySignatureAdjustment(notes, keySignature); // Phase 2: step 4
+        var candidatesByWindow = respellNotes(notes);                            // Phase 1: steps 1-3
+        applyKeySignatureAdjustment(notes, keySignature, candidatesByWindow); // Phase 2: step 4
         console.log("processChord: finished");
     }
 
